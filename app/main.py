@@ -1,13 +1,12 @@
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, RedirectResponse
+from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
+
 from langchain_groq import ChatGroq
 from langchain_community.vectorstores import Chroma
-from langchain_community.embeddings import HuggingFaceEmbeddings
-from langchain_community.document_loaders import DirectoryLoader, TextLoader, PyPDFLoader
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.chains import RetrievalQA
+from langchain_huggingface import HuggingFaceEmbeddings
+
 from dotenv import load_dotenv
 import os
 
@@ -15,74 +14,109 @@ load_dotenv()
 
 app = FastAPI(title="MITS Chatbot")
 
-# Load and index documents
-def load_documents():
-    documents = []
-    
-    # Load text files
-    if os.path.exists("data"):
-        for file in os.listdir("data"):
-            filepath = os.path.join("data", file)
-            if file.endswith(".txt"):
-                loader = TextLoader(filepath, encoding="utf-8")
-                documents.extend(loader.load())
-            elif file.endswith(".pdf"):
-                loader = PyPDFLoader(filepath)
-                documents.extend(loader.load())
-    
-    return documents
 
-def setup_qa_chain():
-    documents = load_documents()
-    
-    if not documents:
-        return None
-    
-    # Split documents
-    splitter = RecursiveCharacterTextSplitter(
-        chunk_size=500,
-        chunk_overlap=50
-    )
-    chunks = splitter.split_documents(documents)
-    
-    # Embeddings
-    embeddings = HuggingFaceEmbeddings(
-        model_name="all-MiniLM-L6-v2"
-    )
-    
-    # Vector store
-    vectorstore = Chroma.from_documents(chunks, embeddings)
-    
-    # LLM
-    llm = ChatGroq(
-        api_key=os.environ.get("GROQ_API_KEY"),
-        model_name="llama3-8b-8192"
-    )
-    
-    # QA Chain
-    qa_chain = RetrievalQA.from_chain_type(
-        llm=llm,
-        chain_type="stuff",
-        retriever=vectorstore.as_retriever(search_kwargs={"k": 3})
-    )
-    
-    return qa_chain
 
-qa_chain = setup_qa_chain()
+# Load existing Chroma database
+
+
+print("Loading embedding model...")
+
+embeddings = HuggingFaceEmbeddings(
+    model_name="all-MiniLM-L6-v2"
+)
+
+print("Loading Chroma database...")
+
+vectorstore = Chroma(
+    persist_directory="../chroma_db",
+    embedding_function=embeddings
+)
+
+print("Chroma database loaded successfully.")
+
+
+
+# Load Groq LLM
+
+
+print("Loading Groq...")
+
+llm = ChatGroq(
+    api_key=os.environ.get("GROQ_API_KEY"),
+    model_name="openai/gpt-oss-20b"
+)
+
+print("Groq loaded successfully.")
+
+
+
+# Request model
+
 
 class Question(BaseModel):
     question: str
 
+
+
+# Ask endpoint
+
+
 @app.post("/ask")
 def ask_question(q: Question):
-    if not qa_chain:
-        return {"answer": "No data loaded. Please add files to the data folder."}
-    
-    result = qa_chain.invoke({"query": q.question})
-    return {"answer": result["result"]}
+
+    # Retrieve relevant chunks
+    results = vectorstore.similarity_search(
+        q.question,
+        k=3
+    )
+
+    # Combine retrieved chunks
+    context = "\n\n".join(
+        doc.page_content for doc in results
+    )
+
+    # Create prompt
+    prompt = f"""
+You are a helpful MITS college assistant.
+
+Answer the question using ONLY the information provided
+in the context below.
+
+If the answer is not present in the context, say:
+"I don't have that information in the college documents."
+
+Context:
+{context}
+
+Question:
+{q.question}
+
+Answer:
+"""
+
+    # Generate answer
+    response = llm.invoke(prompt)
+
+    return {
+        "answer": response.content
+    }
+
+
+
+# Home page
+
 
 @app.get("/")
 def root():
     return RedirectResponse(url="/static/index.html")
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
+
+
+# Static files
+
+
+app.mount(
+    "/static",
+    StaticFiles(directory="../static"),
+    name="static"
+)
