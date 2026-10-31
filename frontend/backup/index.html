@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MITS AI Assistant</title>
+  <link rel="icon" href="/static/assets/mits-logo.png" type="image/png" />
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ════════════════════════════════════════════
+       SIDEBAR
+  ════════════════════════════════════════════ -->
+  <aside class="sidebar">
+
+    <!-- Brand -->
+    <div class="sidebar-brand">
+      <img
+        src="/static/assets/mits-logo.png"
+        alt="MITS Logo"
+        class="sidebar-logo"
+        onerror="this.style.display='none'"
+      />
+      <div class="sidebar-brand-text">
+        <strong>MITS AI</strong>
+        <span>Madhav Institute of Technology &amp; Science</span>
+      </div>
+    </div>
+
+    <!-- New chat -->
+    <button class="sidebar-new-btn" id="new-chat-btn" aria-label="Start new chat">
+      <span class="icon">＋</span>
+      New Chat
+    </button>
+
+    <!-- Recent -->
+    <div class="sidebar-section-label">Recent</div>
+    <ul class="recent-list" id="recent-list" role="list" aria-label="Recent conversations"></ul>
+
+  </aside>
+
+  <!-- ════════════════════════════════════════════
+       MAIN AREA
+  ════════════════════════════════════════════ -->
+  <div class="main">
+
+    <!-- Header -->
+    <header class="header" role="banner">
+      <div class="header-left">
+        <div class="header-eyebrow">Madhav Institute of Technology &amp; Science, Gwalior</div>
+        <div class="header-title">MITS AI Assistant</div>
+      </div>
+      <div class="header-right">
+        <div class="status-pill" aria-label="RAG system status">
+          <span class="status-dot" aria-hidden="true"></span>
+          RAG System Online
+        </div>
+        <button class="theme-btn" id="theme-btn" aria-label="Toggle theme">
+          <span id="theme-icon">☾</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Scrollable content -->
+    <div class="content" id="content">
+
+      <!-- ── HOME SCREEN ── -->
+      <section id="home-screen" aria-label="Home" role="main">
+        <div class="home-inner">
+
+          <div class="home-badge">
+            <span>✦</span>
+            AI-Powered Campus Assistant
+          </div>
+
+          <h1 class="home-heading">
+            Your MITS knowledge,<br>
+            <span class="accent">one conversation away.</span>
+          </h1>
+
+          <div class="home-institution">Madhav Institute of Technology &amp; Science, Gwalior</div>
+
+          <p class="home-sub">
+            Ask anything about academics, faculty, fees, placements,<br>
+            schemes, notices, departments and campus information.
+          </p>
+
+          <div class="cards-label">Explore MITS</div>
+
+          <div class="cards-grid" id="cards-grid" role="list">
+
+            <div class="card" role="listitem" tabindex="0"
+                 data-question="When are the Mid-Sem exams?"
+                 aria-label="Ask about academics">
+              <span class="card-icon">📅</span>
+              <div class="card-title">Academics</div>
+              <div class="card-body">When are the Mid-Sem exams?</div>
+            </div>
+
+            <div class="card" role="listitem" tabindex="0"
+                 data-question="Find CSD faculty members"
+                 aria-label="Ask about faculty">
+              <span class="card-icon">👤</span>
+              <div class="card-title">Faculty</div>
+              <div class="card-body">Find CSD faculty members</div>
+            </div>
+
+            <div class="card" role="listitem" tabindex="0"
+                 data-question="Show B.Tech fee structure"
+                 aria-label="Ask about fees">
+              <span class="card-icon">💰</span>
+              <div class="card-title">Fees</div>
+              <div class="card-body">Show B.Tech fee structure</div>
+            </div>
+
+            <div class="card" role="listitem" tabindex="0"
+                 data-question="Tell me about placements at MITS"
+                 aria-label="Ask about placements">
+              <span class="card-icon">💼</span>
+              <div class="card-title">Placements</div>
+              <div class="card-body">Tell me about placements</div>
+            </div>
+
+            <div class="card" role="listitem" tabindex="0"
+                 data-question="Show me the academic calendar"
+                 aria-label="Ask about calendar">
+              <span class="card-icon">🗓️</span>
+              <div class="card-title">Calendar</div>
+              <div class="card-body">Show the academic calendar</div>
+            </div>
+
+            <div class="card" role="listitem" tabindex="0"
+                 data-question="What facilities does MITS have?"
+                 aria-label="Ask about campus">
+              <span class="card-icon">🏫</span>
+              <div class="card-title">Campus</div>
+              <div class="card-body">What facilities does MITS have?</div>
+            </div>
+
+          </div><!-- /cards-grid -->
+
+        </div><!-- /home-inner -->
+      </section><!-- /home-screen -->
+
+      <!-- ── CHAT SCREEN ── -->
+      <section id="chat-screen" aria-label="Chat" role="main">
+        <div class="chat-messages" id="chat-messages" aria-live="polite" aria-label="Conversation">
+        </div>
+      </section>
+
+    </div><!-- /content -->
+
+    <!-- Input bar — always visible -->
+    <div class="input-bar" role="form" aria-label="Message input">
+      <div class="input-wrap">
+        <textarea
+          id="chat-input"
+          rows="1"
+          placeholder="Ask anything about MITS…"
+          aria-label="Ask a question"
+          autocomplete="off"
+          spellcheck="true"
+        ></textarea>
+        <button
+          class="send-btn"
+          id="send-btn"
+          aria-label="Send message"
+          title="Send (Enter)"
+        >↑</button>
+      </div>
+      <div class="input-hint">Press Enter to send · Shift+Enter for new line</div>
+    </div>
+
+  </div><!-- /main -->
+
+</div><!-- /app -->
+
+<script src="/static/app.js"></script>
+</body>
+</html>

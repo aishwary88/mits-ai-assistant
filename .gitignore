@@ -1,4 +1,15 @@
+# Environment
 .env
+
+# Python
 .venv/
-chroma_db/
 __pycache__/
+*.pyc
+*.pyo
+
+# Vector database (large binary files)
+chroma_db/
+
+# Misc
+thumbnail.png
+*.pdf
