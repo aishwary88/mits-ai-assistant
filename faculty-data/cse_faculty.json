@@ -1,0 +1,267 @@
+[
+  {
+    "name": "Dr. Manish Dixit",
+    "department": "Computer Science and Engineering",
+    "designation": "Professor & Dean, School of CSE",
+    "qualification": "Ph.D.",
+    "area_of_interest": [
+      "Image Processing",
+      "Artificial Intelligence"
+    ],
+    "phone": "0751-2409356",
+    "email": [
+      "dixitmits@mitsgwalior.in"
+    ],
+    "profile_url": null,
+    "photo_url": null,
+    "source": "User-provided CSE faculty details"
+  },
+  {
+    "name": "Dr. R. K. Gupta",
+    "department": "Computer Science and Engineering",
+    "designation": "Professor",
+    "qualification": "Ph.D.",
+    "area_of_interest": [
+      "Data Mining"
+    ],
+    "phone": null,
+    "email": [
+      "rkg@mitsgwalior.in"
+    ],
+    "profile_url": null,
+    "photo_url": null,
+    "source": "User-provided CSE faculty details"
+  },
+  {
+    "name": "Dr. Khushboo Agarwal",
+    "department": "Computer Science and Engineering",
+    "designation": "Assistant Professor & Head CSE",
+    "qualification": "Ph.D. (Computer Science and Engineering)",
+    "area_of_interest": [
+      "Image Processing",
+      "Wireless Network"
+    ],
+    "phone": null,
+    "email": [
+      "ka.agarwals@mitsgwalior.in"
+    ],
+    "profile_url": null,
+    "photo_url": null,
+    "source": "User-provided CSE faculty details"
+  },
+  {
+    "name": "Jaimala Jha",
+    "department": "Computer Science and Engineering",
+    "designation": "Assistant Professor",
+    "qualification": "M.Tech.",
+    "area_of_interest": [
+      "Image Processing"
+    ],
+    "phone": "9907313413",
+    "email": [
+      "jaimala.jha@mitsgwalior.in"
+    ],
+    "profile_url": null,
+    "photo_url": null,
+    "source": "User-provided CSE faculty details"
+  },
+  {
+    "name": "Amit Kumar Manjhvar",
+    "department": "Computer Science and Engineering",
+    "designation": "Assistant Professor",
+    "qualification": "M.Tech.",
+    "area_of_interest": [
+      "Data Mining",
+      "Machine Learning"
+    ],
+    "phone": "7987704987",
+    "email": [
+      "amitkumar@mitsgwalior.in"
+    ],
+    "profile_url": null,
+    "photo_url": null,
+    "source": "User-provided CSE faculty details"
+  },
+  {
+    "name": "Dr. Ranjeet Kumar Singh",
+    "department": "Computer Science and Engineering",
+    "designation": "Assistant Professor",
+    "qualification": "Ph.D. (National Institute of Technology, Jamshedpur), GATE Qualified",
+    "area_of_interest": [
+      "Image Watermarking",
+      "Image Processing"
+    ],
+    "phone": "6201037963",
+    "email": [
+      "ranjeets@mitsgwalior.in"
+    ],
+    "profile_url": null,
+    "photo_url": null,
+    "source": "User-provided CSE faculty details"
+  },
+  {
+    "name": "Dr. Smita Parte",
+    "department": "Computer Science and Engineering",
+    "designation": "Assistant Professor",
+    "qualification": "Ph.D. (IET DAVV, Indore, MP), M.E. (SGSITS, Indore, MP), B.E. (SGSITS, Indore, MP), GATE and UGC NET-JRF Qualified",
+    "area_of_interest": [
+      "Information Security",
+      "Artificial Intelligence"
+    ],
+    "phone": "9907525480",
+    "email": [
+      "smita@mitsgwalior.in"
+    ],
+    "profile_url": null,
+    "photo_url": null,
+    "source": "User-provided CSE faculty details"
+  },
+  {
+    "name": "Dr. Praphula Kumar Jain",
+    "department": "Computer Science and Engineering",
+    "designation": "Assistant Professor",
+    "qualification": "Ph.D. [IIT (ISM), Dhanbad], M.Tech. [IIT (ISM), Dhanbad], B.E. [RGPV Bhopal], GATE Qualified (2011, 2012, 2013, 2015, 2018, 2019)",
+    "area_of_interest": [
+      "Machine Learning",
+      "Deep Learning",
+      "Natural Language Processing",
+      "Data Science",
+      "Theory of Computation"
+    ],
+    "phone": "+91-9752450951",
+    "email": [
+      "praphulajain@mitsgwalior.in",
+      "praphulajn1@gmail.com"
+    ],
+    "profile_url": null,
+    "photo_url": null,
+    "source": "User-provided CSE faculty details; duplicate name variants consolidated"
+  },
+  {
+    "name": "Dr. Kirti Raj Bhatele",
+    "department": "Computer Science and Engineering",
+    "designation": "Assistant Professor",
+    "qualification": "B.E., M.Tech. (Hons) (IT), PGDCL, Ph.D. (IT)",
+    "area_of_interest": [
+      "Medical Imaging and AI",
+      "Deep Transfer Learning"
+    ],
+    "phone": "918823872288",
+    "email": [
+      "kirtiraj@mitsgwalior.in"
+    ],
+    "profile_url": null,
+    "photo_url": null,
+    "source": "User-provided CSE faculty details"
+  },
+  {
+    "name": "Dr. Saurabh Agarwal",
+    "department": "Computer Science and Engineering",
+    "designation": "Assistant Professor",
+    "qualification": "Ph.D. (ABV-IIITM, Gwalior), UGC-NET, GATE",
+    "area_of_interest": [
+      "Medical Imaging",
+      "Computer Vision",
+      "Deep Learning",
+      "AI/ML"
+    ],
+    "phone": "8109964724",
+    "email": [
+      "saurabhagarwal@mitsgwalior.in"
+    ],
+    "profile_url": null,
+    "photo_url": null,
+    "source": "User-provided CSE faculty details"
+  },
+  {
+    "name": "Dr. Pooja Mishra",
+    "department": "Computer Science and Engineering",
+    "designation": "Assistant Professor",
+    "qualification": "B.E. (Hons), M.Tech. (Hons), Ph.D. (CSE), ABV-IIITM Gwalior (MP), GATE Qualified (2014, 2017)",
+    "area_of_interest": [
+      "Software Defined Wireless Sensor Network (SDWSN)",
+      "Internet of Things (IoT)",
+      "Network Optimization",
+      "Soft Computing Techniques"
+    ],
+    "phone": "8959613395",
+    "email": [
+      "poojamishra@mitsgwalior.in"
+    ],
+    "profile_url": null,
+    "photo_url": null,
+    "source": "User-provided CSE faculty details"
+  },
+  {
+    "name": "Dr. Lalita Agrawal",
+    "department": "Computer Science and Engineering",
+    "designation": "Assistant Professor",
+    "qualification": "Ph.D. (IIT Indore), M.Tech. (MANIT Bhopal), GATE Qualified",
+    "area_of_interest": [
+      "Internet of Things (IoT)",
+      "Software-Defined Networks (SDNs)",
+      "Edge Computing",
+      "Beyond 5G and 6G Networks",
+      "Formal Methods (Discrete Event Systems)",
+      "Game-Theoretic Applications"
+    ],
+    "phone": "9479809326",
+    "email": [
+      "lalita@mitsgwalior.in"
+    ],
+    "profile_url": null,
+    "photo_url": null,
+    "source": "User-provided CSE faculty details"
+  },
+  {
+    "name": "Mona Pandey Sharma",
+    "department": "Computer Science and Engineering",
+    "designation": "Assistant Professor",
+    "qualification": "M.Tech. (H), Ph.D. Pursuing",
+    "area_of_interest": [
+      "Machine Learning",
+      "Ensemble Learning"
+    ],
+    "phone": "9340999410",
+    "email": [
+      "monap2508@mitsgwalior.in"
+    ],
+    "profile_url": null,
+    "photo_url": null,
+    "source": "User-provided CSE faculty details"
+  },
+  {
+    "name": "Manisha Pathak",
+    "department": "Computer Science and Engineering",
+    "designation": "Assistant Professor",
+    "qualification": "M.Tech.",
+    "area_of_interest": [
+      "Machine Learning",
+      "Database Management System",
+      "Artificial Intelligence"
+    ],
+    "phone": "9691206039",
+    "email": [
+      "manisha.pits1995@mitsgwalior.in"
+    ],
+    "profile_url": null,
+    "photo_url": null,
+    "source": "User-provided CSE faculty details"
+  },
+  {
+    "name": "Yamini Richhariya",
+    "department": "Computer Science and Engineering",
+    "designation": "Assistant Professor",
+    "qualification": "M.Tech.",
+    "area_of_interest": [
+      "Data Mining"
+    ],
+    "phone": "9754656068",
+    "email": [
+      "yaminirichhariya@mitsgwalior.in"
+    ],
+    "profile_url": null,
+    "photo_url": null,
+    "source": "User-provided CSE faculty details"
+  }
+]

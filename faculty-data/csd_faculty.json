@@ -1,0 +1,229 @@
+[
+  {
+    "name": "Dr. Mahesh Parmar",
+    "department": "Computer Science and Design",
+    "designation": "Assistant Professor & Head CSD",
+    "qualification": "Ph.D. (Computer Science & Engineering), GATE Qualified (2007, 2012)",
+    "area_of_interest": [
+      "Data Mining",
+      "Machine Learning",
+      "Deep Learning",
+      "Sentiment Analysis"
+    ],
+    "phone": "7987537703",
+    "email": [
+      "maheshparmar@mitsgwalior.in"
+    ],
+    "website": null,
+    "profile_url": "https://web.mitsgwalior.in/faculty-profiles-cse-2/mahesh-parmar-2",
+"photo_url": "https://web.mitsgwalior.in/images/faculties/CSE/mp1.webp",
+    "source": "User-provided CSD faculty details"
+  },
+  {
+    "name": "Dr. Rohit Agrawal",
+    "department": "Computer Science and Design",
+    "designation": "Assistant Professor",
+    "qualification": "Ph.D. (IIT Indore), M.Tech. (IIT-ISM Dhanbad), B.Tech. (BIET Jhansi), GATE and UGC-NET Qualified",
+    "area_of_interest": [
+      "Machine Learning",
+      "Image Processing",
+      "Optimization",
+      "Data Science"
+    ],
+    "research_visits": [
+      "June 2021 – October 2021: LU Hannover, Hannover, Germany",
+      "November 2020 – December 2020: LU Hannover, Hannover, Germany",
+      "November 2019 – December 2019: Lancaster University, Lancaster, United Kingdom",
+      "June 2018 – August 2018: Center for Advancing Electronics Dresden (cfaed), TU Dresden, Dresden, Germany"
+    ],
+    "phone": "8505821983",
+    "email": [
+      "rohit@mitsgwalior.in"
+    ],
+    "website": null,
+    "profile_url": null,
+    "photo_url": null,
+    "source": "User-provided CSD faculty details"
+  },
+  {
+    "name": "Dr. Kuldeep Narayan Tripathi",
+    "department": "Computer Science and Design",
+    "designation": "Assistant Professor",
+    "qualification": "Ph.D. (IIT Roorkee), M.Tech. (ABV-IIITM Gwalior), GATE and UGC-NET Qualified",
+    "area_of_interest": [
+      "Information Security",
+      "Wireless Networks",
+      "Ad-hoc Networks",
+      "Machine Learning",
+      "Internet of Things (IoT)",
+      "Edge Computing",
+      "Cyber-Physical Systems"
+    ],
+    "phone": "8889951188",
+    "email": [
+      "kuldeep08narayan@gmail.com",
+      "kuldeepnarayan@mitsgwalior.in"
+    ],
+    "website": null,
+    "profile_url": null,
+    "photo_url": null,
+    "source": "User-provided CSD faculty details"
+  },
+  {
+    "name": "Dr. Gagandeep Kaur",
+    "department": "Computer Science and Design",
+    "designation": "Assistant Professor",
+    "qualification": "Ph.D. (ABV-IIITM), Senior Member of IEEE (SMIEEE), GATE Qualified",
+    "area_of_interest": [
+      "Internet of Things (IoT)",
+      "Cyber Physical Networks (CPNs)",
+      "Wireless Sensor Networks (WSNs)",
+      "Artificial Intelligence (AI)"
+    ],
+    "phone": "6265610262",
+    "email": [
+      "gagandeep@mitsgwalior.in",
+      "gagan873@gmail.com"
+    ],
+    "website": "https://drgagandeepkaur.netlify.app/",
+    "profile_url": null,
+    "photo_url": null,
+    "source": "User-provided CSD faculty details"
+  },
+  {
+    "name": "Dr. Devesh Kumar Lal",
+    "department": "Computer Science and Design",
+    "designation": "Assistant Professor",
+    "qualification": "Ph.D., CSIR-JRF (AIR-178), CSIR-SRF, UGC-NET Qualified, GATE Qualified",
+    "area_of_interest": [
+      "Big Data",
+      "Robotics",
+      "Artificial Intelligence (AI)",
+      "Internet of Things (IoT)"
+    ],
+    "phone": "9407100266",
+    "email": [
+      "deveshlal@mitsgwalior.in",
+      "devesh2222@gmail.com"
+    ],
+    "website": null,
+    "profile_url": null,
+    "photo_url": null,
+    "source": "User-provided CSD faculty details"
+  },
+  {
+    "name": "Dr. Rahul Dubey",
+    "department": "Computer Science and Design",
+    "designation": "Assistant Professor",
+    "qualification": "Ph.D., M.Tech., B.E., GATE Qualified",
+    "area_of_interest": [
+      "Machine Learning",
+      "Deep Learning",
+      "AutoML",
+      "Image Processing"
+    ],
+    "phone": "8871658241",
+    "email": [
+      "rahuldubey@mitsgwalior.in"
+    ],
+    "website": null,
+    "profile_url": null,
+    "photo_url": null,
+    "source": "User-provided CSD faculty details"
+  },
+  {
+    "name": "Dr. Nishant Jain",
+    "department": "Computer Science and Design",
+    "designation": "Assistant Professor",
+    "qualification": "B.E., M.Tech., Ph.D. (Indian Institute of Technology IIT-ISM, Dhanbad), GATE Qualified (2013, 2014, 2015, 2016, 2017)",
+    "area_of_interest": [
+      "Explainable Ensemble Machine Learning Algorithms",
+      "Tree-based Ensemble Learning Algorithms"
+    ],
+    "phone": "7000525970",
+    "email": [
+      "nishantjain@mitsgwalior.in"
+    ],
+    "website": null,
+    "profile_url": null,
+    "photo_url": null,
+    "source": "User-provided CSD faculty details"
+  },
+  {
+    "name": "Dr. Ashish Tomar",
+    "department": "Computer Science and Design",
+    "designation": "Assistant Professor",
+    "qualification": "Ph.D. (IIT-ISM Dhanbad), M.Tech. (ABV-IIITM Gwalior), B.E. (SGSITS Indore)",
+    "area_of_interest": [
+      "Cryptography",
+      "Blockchain",
+      "IoT Security",
+      "Authentication"
+    ],
+    "phone": "8839837532",
+    "email": [
+      "ashishtomar244@gmail.com"
+    ],
+    "website": null,
+    "profile_url": null,
+    "photo_url": null,
+    "source": "User-provided CSD faculty details"
+  },
+  {
+    "name": "Dr. Manojeet Roy",
+    "department": "Computer Science and Design",
+    "designation": "Assistant Professor",
+    "qualification": "B.Tech. (CSE), M.Tech. (CSE), Ph.D. (CSE, NIT Silchar), GATE Qualified (2014)",
+    "area_of_interest": [
+      "Computer Vision",
+      "Deep Learning",
+      "Machine Learning"
+    ],
+    "phone": "9993649781",
+    "email": [
+      "manojeetroy@mitsgwalior.in"
+    ],
+    "orcid": "0000-0002-6628-2405",
+    "website": null,
+    "profile_url": null,
+    "photo_url": null,
+    "source": "User-provided CSD faculty details"
+  },
+  {
+    "name": "Jigyasa Mishra",
+    "department": "Computer Science and Design",
+    "designation": "Assistant Professor",
+    "qualification": "M.Tech., Ph.D. Pursuing",
+    "area_of_interest": [
+      "Image Processing",
+      "Machine Learning",
+      "Deep Learning",
+      "Transfer Learning"
+    ],
+    "phone": "9584011118",
+    "email": [
+      "jigyasa@mitsgwalior.in"
+    ],
+    "website": null,
+    "profile_url": null,
+    "photo_url": null,
+    "source": "User-provided CSD faculty details"
+  },
+  {
+    "name": "Arti Ahirwar",
+    "department": "Computer Science and Design",
+    "designation": "Assistant Professor",
+    "qualification": "B.E., M.E., Ph.D. Pursuing",
+    "area_of_interest": [
+      "Wireless Network"
+    ],
+    "phone": "9479876325",
+    "email": [
+      "ahirwar.arti@gmail.com"
+    ],
+    "website": null,
+    "profile_url": null,
+    "photo_url": null,
+    "source": "User-provided CSD faculty details"
+  }
+]
