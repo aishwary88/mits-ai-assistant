@@ -1,0 +1,35 @@
+# MITS AI Assistant — Python dependencies
+# Install with:  pip install -r requirements.txt
+
+# Web framework
+fastapi==0.141.1
+uvicorn==0.53.0
+aiofiles==25.1.0
+python-multipart==0.0.20
+
+# Environment
+python-dotenv==1.2.3
+
+# LangChain stack
+langchain==1.4.2
+langchain-community==0.4.2
+langchain-core==1.6.4
+langchain-text-splitters==1.1.2
+langchain-groq==1.1.3
+langchain-huggingface==1.2.2
+
+# Vector store
+chromadb==1.5.9
+
+# Embeddings
+sentence-transformers==6.1.0
+huggingface_hub==1.32.0
+
+# LLM providers
+groq==0.37.1
+
+# PDF loading
+pypdf==5.1.0
+
+# Local fallback model (optional — only used when GROQ_API_KEY is not set)
+transformers==5.17.0
