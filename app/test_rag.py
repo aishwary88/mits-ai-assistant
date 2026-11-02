@@ -1,29 +1,39 @@
 
 
+
+from pathlib import Path
 from langchain_community.vectorstores import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_groq import ChatGroq
 from dotenv import load_dotenv
 import os
 
-load_dotenv()
 
-# 1. Load embedding model
+# 1. Set project paths
+BASE_DIR = Path(__file__).resolve().parent.parent
+DB_DIR = BASE_DIR / "chroma_db"
+
+load_dotenv(BASE_DIR / ".env")
+
+
+# 2. Load embedding model
 print("Loading embedding model...")
 
 embeddings = HuggingFaceEmbeddings(
     model_name="all-MiniLM-L6-v2"
 )
 
-# 2. Load existing Chroma database
+
+# 3. Load existing Chroma database
 print("Loading Chroma database...")
 
 vectorstore = Chroma(
-    persist_directory="../chroma_db",
+    persist_directory=str(DB_DIR),
     embedding_function=embeddings
 )
 
-# 3. Load Groq
+
+# 4. Load Groq
 print("\nLoading Groq...")
 
 llm = ChatGroq(
@@ -31,13 +41,14 @@ llm = ChatGroq(
     model_name="openai/gpt-oss-20b"
 )
 
-# 4. Ask a question
+
+# 5. Ask a question
 question = input("\nAsk MITS chatbot: ")
 
 print("\nQuestion:", question)
 
 
-# 5. Detect faculty-related questions
+# 6. Detect faculty-related questions
 faculty_keywords = [
     "faculty",
     "professor",
@@ -50,6 +61,7 @@ faculty_keywords = [
     "specialisation",
     "qualification",
     "who is",
+    "who are",
     "tell me about",
     "machine learning",
     "deep learning",
@@ -67,13 +79,42 @@ is_faculty_query = any(
 )
 
 
-# 6. Faculty retrieval
+# 7. Faculty retrieval
 if is_faculty_query:
+
+    department = None
+
+    question_lower = question.lower()
+
+    if (
+        "csd" in question_lower
+        or "computer science and design" in question_lower
+    ):
+        department = "CSD"
+
+    elif (
+        "cse" in question_lower
+        or "computer science and engineering" in question_lower
+    ):
+        department = "CSE"
+
+    # Build ChromaDB metadata filter
+    if department:
+        metadata_filter = {
+            "$and": [
+                {"type": "faculty"},
+                {"department": department}
+            ]
+        }
+    else:
+        metadata_filter = {
+            "type": "faculty"
+        }
 
     results = vectorstore.similarity_search(
         question,
-        k=5,
-        filter={"type": "faculty"}
+        k=10,
+        filter=metadata_filter
     )
 
     print("\nRetrieved faculty records:", len(results))
@@ -82,7 +123,7 @@ if is_faculty_query:
         print("No faculty information found.")
         raise SystemExit
 
-    # Remove duplicate faculty records, if any
+    # Remove duplicate faculty records
     unique_faculty = {}
 
     for doc in results:
@@ -93,10 +134,12 @@ if is_faculty_query:
 
     faculty_docs = list(unique_faculty.values())
 
+    # Prepare faculty context
     context = "\n\n".join(
         doc.page_content for doc in faculty_docs
     )
 
+    # Generate faculty answer
     prompt = f"""
     You are a helpful MITS Gwalior college assistant.
 
@@ -120,18 +163,19 @@ if is_faculty_query:
     print("\n--- FACULTY INFORMATION ---")
     print(response.content)
 
-    # Display photo and profile URLs for every retrieved faculty member
+    # Display faculty photos and profiles
     print("\n--- FACULTY PHOTOS AND PROFILES ---")
 
     for doc in faculty_docs:
         metadata = doc.metadata
 
         print("\nFaculty:", metadata.get("faculty_name"))
-        print("Photo:", metadata.get("photo_url", "Not available"))
-        print("Profile:", metadata.get("profile_url", "Not available"))
+        print("Department:", metadata.get("department"))
+        print("Photo:", metadata.get("photo_url") or "Not available")
+        print("Profile:", metadata.get("profile_url") or "Not available")
 
 
-# 7. Normal college-related query
+# 8. Normal college-related query
 else:
 
     results = vectorstore.similarity_search(
@@ -140,6 +184,10 @@ else:
     )
 
     print("\nRetrieved", len(results), "documents.")
+
+    if not results:
+        print("No relevant college information found.")
+        raise SystemExit
 
     context = "\n\n".join(
         doc.page_content for doc in results
