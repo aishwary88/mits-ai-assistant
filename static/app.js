@@ -56,23 +56,44 @@ function addRecentChat(title) {
   renderRecent();
 }
 
+
 function renderRecent() {
   const items = loadRecent();
   recentList.innerHTML = '';
 
-  const icons = ['🎓', '👤', '💰', '📋', '📅', '🏫', '💼', '📚', '🔍', '📊'];
-
   items.forEach((item, idx) => {
     const li = document.createElement('li');
     li.className = 'recent-item';
-    li.innerHTML = `
-      <span class="recent-item-icon">${icons[idx % icons.length]}</span>
-      <span>${escapeHtml(item.title)}</span>
-    `;
+
+    const title = document.createElement('span');
+    title.className = 'recent-item-title';
+    title.textContent = item.title;
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'recent-delete-btn';
+    deleteBtn.textContent = '×';
+    deleteBtn.title = 'Delete chat';
+
+    deleteBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+
+      const updatedItems = loadRecent();
+      updatedItems.splice(idx, 1);
+
+      localStorage.setItem(
+        'mits_recent_chats',
+        JSON.stringify(updatedItems)
+      );
+
+      renderRecent();
+    });
+
     li.addEventListener('click', () => {
-      // clicking a recent item sends the same question again
       startChat(item.title);
     });
+
+    li.appendChild(title);
+    li.appendChild(deleteBtn);
     recentList.appendChild(li);
   });
 }
@@ -419,8 +440,9 @@ function appendMessage(role, text, sources) {
 
   const avatarEl = document.createElement('div');
   avatarEl.className = 'msg-avatar';
-  avatarEl.textContent = isUser ? 'U' : 'M';
-
+  avatarEl.innerHTML = isUser
+    ? '<span class="user-avatar-icon">♙</span>'
+    : '<span class="ai-avatar-icon">✦</span>';
   const bubbleEl = document.createElement('div');
   bubbleEl.className = 'msg-bubble';
 
