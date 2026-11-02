@@ -460,14 +460,18 @@ function appendMessage(role, text, sources) {
     // deduplicate source titles
     const seen = new Set();
     sources.forEach(src => {
-      const title = src.title || src.source || 'MITS document';
+     const title =
+  src.title ||
+  src.source ||
+  src.name ||
+  'MITS document';
       if (seen.has(title)) return;
       seen.add(title);
 
       const itemEl = document.createElement('div');
       itemEl.className = 'source-item';
       // show just the filename, not the full path
-      const filename = title.split(/[\\/]/).pop();
+      const filename = String(title).split(/[\\/]/).pop();
       itemEl.textContent = filename;
       sourcesEl.appendChild(itemEl);
     });

@@ -9,7 +9,10 @@ from sentence_transformers import CrossEncoder
 from langchain_groq import ChatGroq
 from langchain_community.vectorstores import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
-
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+from pathlib import Path
+from syllabus_retriever import retrieve_syllabus
 
 # =====================================================
 # 1. PROJECT PATHS AND ENVIRONMENT
@@ -21,6 +24,10 @@ DB_DIR = BASE_DIR / "chroma_db"
 load_dotenv(BASE_DIR / ".env")
 
 app = FastAPI(title="MITS Gwalior RAG Chatbot")
+BASE_DIR = Path(__file__).resolve().parent.parent
+STATIC_DIR = BASE_DIR / "static"
+
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 
 # =====================================================
@@ -93,7 +100,6 @@ FACULTY_KEYWORDS = [
     "qualification",
     "who is",
     "who are",
-    "tell me about",
     "machine learning",
     "deep learning",
     "artificial intelligence",
@@ -133,7 +139,137 @@ def detect_department(question: str):
 
     return None
 
+# =====================================================
+# SYLLABUS QUESTION DETECTION AND RETRIEVAL
+# =====================================================
 
+def is_syllabus_query(question: str) -> bool:
+    keywords = [
+        "syllabus",
+        "scheme of evaluation",
+        "course structure"
+    ]
+
+    question_lower = question.lower()
+
+    return any(keyword in question_lower for keyword in keywords)
+
+
+def detect_semester(question: str):
+    question_lower = question.lower()
+
+    semester_map = {
+        "1": 1, "i": 1,
+        "2": 2, "ii": 2,
+        "3": 3, "iii": 3,
+        "4": 4, "iv": 4,
+        "5": 5, "v": 5,
+        "6": 6, "vi": 6,
+        "7": 7, "vii": 7,
+        "8": 8, "viii": 8
+    }
+
+    pattern = (
+        r"\b(1|2|3|4|5|6|7|8|"
+        r"VIII|VII|VI|V|IV|III|II|I)"
+        r"(?:st|nd|rd|th)?\s*(?:semester|sem)\b"
+        r"|\b(?:semester|sem)\s*"
+        r"(VIII|VII|VI|V|IV|III|II|I|1|2|3|4|5|6|7|8)\b"
+    )
+
+    match = re.search(pattern, question_lower)
+
+    if not match:
+        return None
+
+    semester_value = next(
+        (group for group in match.groups() if group),
+        None
+    )
+
+    return semester_map.get(semester_value.lower())
+
+
+def answer_syllabus_question(question: str):
+
+    department = detect_department(question)
+    semester = detect_semester(question)
+
+    if not department:
+        return {
+            "type": "syllabus",
+            "answer": "Please specify the department: CSE or CSD.",
+            "faculty": [],
+            "sources": []
+        }
+
+    if not semester:
+        return {
+            "type": "syllabus",
+            "answer": "Please specify the semester (1 to 8).",
+            "faculty": [],
+            "sources": []
+        }
+
+    syllabus_context = retrieve_syllabus(department, semester)
+
+    if syllabus_context.startswith("No indexed syllabus"):
+        return {
+            "type": "syllabus",
+            "answer": syllabus_context,
+            "faculty": [],
+            "sources": []
+        }
+
+    prompt = f"""
+You are a helpful MITS Gwalior college assistant.
+
+Answer the student's syllabus question using ONLY the
+provided syllabus context.
+
+Rules:
+- Clearly list the subject names and subject codes.
+- Include labs, projects and other listed courses.
+- Do not invent or modify subject names or codes.
+- Do not confuse marks, credits or contact hours with subjects.
+- If a detail is missing, say it is not available in the context.
+
+Syllabus context:
+{syllabus_context}
+
+Student question:
+{question}
+
+Answer:
+"""
+
+    response = llm.invoke(prompt)
+
+    sources = []
+    seen_sources = set()
+
+    for line in syllabus_context.splitlines():
+        if line.startswith("Source:"):
+            source = line.replace("Source:", "", 1).strip()
+
+        elif line.startswith("Page:"):
+            page = line.replace("Page:", "", 1).strip()
+            source_key = (source, page)
+
+            if source_key not in seen_sources:
+                seen_sources.add(source_key)
+                sources.append({
+                    "type": "pdf",
+                    "source": source,
+                    "page": page
+                })
+
+    return {
+        "type": "syllabus",
+        "answer": response.content,
+        "faculty": [],
+        "sources": sources
+    }
 # =====================================================
 # 5. MULTI-QUERY GENERATION
 # =====================================================
@@ -270,6 +406,7 @@ import re
 
 def retrieve_faculty(question: str):
 
+    question_lower = question.lower()
     department = detect_department(question)
 
     # Retrieve faculty records from the selected department
@@ -300,17 +437,47 @@ def retrieve_faculty(question: str):
 
     faculty = list(unique_faculty.values())
 
-    # Return all faculty for general listing questions
+    if not faculty:
+        return []
+
+    # Normalize question for name matching
+    normalized_question = re.sub(
+        r"[^a-z0-9\s]", " ", question_lower
+    )
+    normalized_question = " ".join(normalized_question.split())
+
+    # STEP 1: Exact faculty-name matching gets priority
+    exact_matches = []
+
+    for doc in faculty:
+        name = doc.metadata.get("faculty_name", "").lower()
+        normalized_name = re.sub(r"[^a-z0-9\s]", " ", name)
+        normalized_name = " ".join(normalized_name.split())
+
+        if normalized_name and normalized_name in normalized_question:
+            exact_matches.append(doc)
+
+    if exact_matches:
+        return exact_matches
+
+    # STEP 2: Department-wide and all-faculty queries
     general_terms = [
-        "show all", "all faculty", "list all",
-        "faculty members", "show faculty",
-        "list faculty"
+        "show all",
+        "all faculty",
+        "list all",
+        "faculty members",
+        "show faculty",
+        "list faculty",
+        "cse faculty",
+        "csd faculty",
+        "faculty of cse",
+        "faculty of csd"
     ]
 
-    if any(term in question.lower() for term in general_terms):
+    if any(term in normalized_question for term in general_terms):
         return faculty
 
-    # Extract meaningful search terms
+    # STEP 3: Extract meaningful search terms
     stopwords = {
         "which", "who", "are", "the", "is", "in", "at",
         "of", "for", "and", "or", "do", "does", "has",
@@ -319,22 +486,20 @@ def retrieve_faculty(question: str):
         "professor", "professors", "from", "department",
         "specialization", "specializations", "interest",
         "interests", "area", "areas", "show", "me", "find",
-        "tell", "about", "csd", "cse"
+        "tell", "about", "csd", "cse", "mits", "dr"
     }
 
-    words = re.findall(r"[a-z]+", question.lower())
+    words = re.findall(r"[a-z]+", question_lower)
 
     search_terms = [
         word for word in words
         if word not in stopwords and len(word) > 1
     ]
 
-        # Search across relevant faculty fields instead of only areas of interest
-
     if not search_terms:
         return faculty
 
-    # Normalize common academic terminology
+    # STEP 4: Normalize common academic terminology
     term_aliases = {
         "hod": "head",
         "specializations": "specialization",
@@ -346,23 +511,22 @@ def retrieve_faculty(question: str):
         for term in search_terms
     ]
 
+    # STEP 5: Match relevant faculty fields
     matching_faculty = []
 
     for doc in faculty:
         metadata = doc.metadata
 
-        # Combine relevant faculty information
         searchable_fields = [
             str(metadata.get("faculty_name", "")),
             str(metadata.get("designation", "")),
             str(metadata.get("qualification", "")),
             str(metadata.get("area_of_interest", "")),
-            str(metadata.get("email", "")),
+            str(metadata.get("email", ""))
         ]
 
         searchable_text = " ".join(searchable_fields).lower()
 
-        # Count how many query terms match this faculty record
         matched_terms = sum(
             1 for term in search_terms
             if term in searchable_text
@@ -371,13 +535,21 @@ def retrieve_faculty(question: str):
         if matched_terms > 0:
             matching_faculty.append((matched_terms, doc))
 
-    # Rank records by number of matching terms
+    if not matching_faculty:
+        return []
+
+    # STEP 6: Return only the highest-scoring matches
     matching_faculty.sort(
         key=lambda item: item[0],
         reverse=True
     )
 
-    return [doc for score, doc in matching_faculty]
+    best_score = matching_faculty[0][0]
+
+    return [
+        doc for score, doc in matching_faculty
+        if score == best_score
+    ]
 
 
 
@@ -428,13 +600,13 @@ def answer_faculty_question(question: str):
 
         if faculty["photo_url"]:
             answer_lines.append(
-                f"![{faculty['name']}]({faculty['photo_url']})"
-            )
+        f"![{faculty['name']}]({faculty['photo_url']})"
+    )
 
         if faculty["profile_url"]:
-            answer_lines.append(
-               f"[View Official Profile]({faculty['profile_url']})"
-            )
+          answer_lines.append(
+        f"[View Official Profile]({faculty['profile_url']})"
+    )
 
         answer_lines.append("")
 
@@ -486,11 +658,23 @@ def answer_general_question(question: str):
     for query in queries:
         print("-", query)
 
-    # Retrieve chunks for every query
+        # Detect syllabus queries
+    is_syllabus_query = any(
+        word in question.lower()
+        for word in [
+            "syllabus",
+            "scheme of evaluation",
+            "course structure"
+        ]
+    )
+
+    # Retrieve more chunks for syllabus queries
+    retrieval_k = 20 if is_syllabus_query else 5
+
     ranked_lists = [
         vectorstore.similarity_search(
             query,
-            k=5
+            k=retrieval_k
         )
         for query in queries
     ]
@@ -498,16 +682,25 @@ def answer_general_question(question: str):
     # Combine results using RRF
     results = reciprocal_rank_fusion(ranked_lists)
 
-    # Keep top 15 candidates
-    candidates = deduplicate_documents(results)[:15]
+    # Keep more candidates for syllabus queries
+    candidates = deduplicate_documents(results)[
+        :40 if is_syllabus_query else 15
+    ]
 
-    # Rerank candidates using CrossEncoder
-    final_results = rerank_documents(
-        question,
-        candidates,
-        top_n=5
-    )
+    if is_syllabus_query:
+        # Preserve more syllabus table chunks
+        # instead of allowing the reranker to discard subject rows.
+        final_results = candidates[:10]
+    else:
+        # Keep the existing reranking process for other queries
+        final_results = rerank_documents(
+            question,
+            candidates,
+            top_n=5
+        )
 
+    print("\nCandidates before reranking:", len(candidates))
+    print("\nFinal chunks:", len(final_results))
     print("\nCandidates before reranking:", len(candidates))
     print("Final chunks after reranking:", len(final_results))
 
@@ -524,6 +717,9 @@ def answer_general_question(question: str):
         doc.page_content
         for doc in final_results
     )
+    print("\n========== FINAL CONTEXT SENT TO LLM ==========")
+    print(context)
+    print("================================================")
 
     prompt = f"""
 You are a helpful MITS Gwalior college assistant.
@@ -604,12 +800,18 @@ def ask_question(q: Question):
     print("Student question:", question)
     print("===================================")
 
+        # Syllabus questions
+    if is_syllabus_query(question):
+
+        return answer_syllabus_question(question)
+
+    # Faculty questions
     if is_faculty_query(question):
 
         return answer_faculty_question(question)
 
+    # All other questions use normal RAG
     return answer_general_question(question)
-
 
 # =====================================================
 # 11. HEALTH CHECK
@@ -617,12 +819,7 @@ def ask_question(q: Question):
 
 @app.get("/")
 def root():
-
-    return {
-        "message": "MITS Gwalior RAG Chatbot Backend is running.",
-        "status": "active",
-        "docs": "/docs"
-    }
+    return FileResponse(STATIC_DIR / "index.html")
 
 
 @app.get("/health")

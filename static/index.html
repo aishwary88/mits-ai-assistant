@@ -1,28 +1,131 @@
+
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" href="/static/assets/mits-logo.png" type="image/png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <title>MITS AI Assistant</title>
-    <!-- Inline theme script: applies stored theme before first paint to prevent FOUC -->
-    <script>
-      (function () {
-        try {
-          var t = localStorage.getItem('mits_theme');
-          if (t !== 'dark') t = 'light';
-          document.documentElement.setAttribute('data-theme', t);
-        } catch (e) {
-          document.documentElement.setAttribute('data-theme', 'light');
-        }
-      })();
-    </script>
-    <script type="module" crossorigin src="/static/assets/index-Do53zW0R.js"></script>
-    <link rel="modulepreload" crossorigin href="/static/assets/motion-BwLpCJQ6.js">
-    <link rel="modulepreload" crossorigin href="/static/assets/react-BsOvDYUW.js">
-    <link rel="stylesheet" crossorigin href="/static/assets/index-CvzShDKw.css">
-  </head>
-  <body>
-    <div id="root"></div>
-  </body>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MITS AI Assistant</title>
+
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem('mits_theme');
+        if (t !== 'dark') t = 'light';
+        document.documentElement.setAttribute('data-theme', t);
+      } catch (e) {
+        document.documentElement.setAttribute('data-theme', 'light');
+      }
+    })();
+  </script>
+
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+
+<body>
+  <div id="app">
+
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <img src="/static/assets/mits-logo.png" class="sidebar-logo" alt="MITS Logo" />
+        <div class="sidebar-brand-text">
+          <strong>MITS AI</strong>
+          <span>Gwalior Assistant</span>
+        </div>
+      </div>
+
+      <button class="sidebar-new-btn" id="new-chat-btn">
+        <span class="icon">＋</span> New Chat
+      </button>
+
+      <div class="sidebar-section-label">Recent Chats</div>
+      <ul class="recent-list" id="recent-list"></ul>
+    </aside>
+
+    <main class="main">
+
+      <header class="header">
+        <div class="header-left">
+          <div class="header-eyebrow">Madhav Institute of Technology & Science</div>
+          <div class="header-title">MITS AI Assistant</div>
+        </div>
+
+        <div class="header-right">
+          <div class="status-pill">
+            <span class="status-dot"></span>
+            Online
+          </div>
+          <button class="theme-btn" id="theme-btn" title="Toggle theme">🌙</button>
+        </div>
+      </header>
+
+      <div class="content">
+
+        <section id="home-screen">
+          <div class="home-inner">
+            <div class="home-badge">✦ AI Powered Assistant</div>
+
+            <h1 class="home-heading">
+              Welcome to <span class="accent">MITS AI</span>
+            </h1>
+
+            <div class="home-institution">
+              Madhav Institute of Technology & Science, Gwalior
+            </div>
+
+            <p class="home-sub">
+              Ask me about academics, faculty, admissions, placements
+              and other college information.
+            </p>
+
+            <div class="cards-label">Try asking</div>
+
+            <div class="cards-grid" id="cards-grid">
+              <button class="card" data-question="Who is the HOD of CSD?">
+                <span class="card-icon">👨‍🏫</span>
+                <div class="card-title">Faculty</div>
+                <div class="card-body">Find faculty and department information.</div>
+              </button>
+
+              <button class="card" data-question="What is the vision of MITS?">
+                <span class="card-icon">🏛️</span>
+                <div class="card-title">About MITS</div>
+                <div class="card-body">Learn about the institute.</div>
+              </button>
+
+              <button class="card" data-question="Tell me about the academic calendar.">
+                <span class="card-icon">📅</span>
+                <div class="card-title">Academics</div>
+                <div class="card-body">Ask about academic schedules.</div>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <section id="chat-screen">
+          <div class="chat-messages" id="chat-messages"></div>
+        </section>
+
+      </div>
+
+      <div class="input-bar">
+        <div class="input-wrap">
+          <textarea
+            id="chat-input"
+            rows="1"
+            placeholder="Ask anything about MITS..."
+          ></textarea>
+
+          <button class="send-btn" id="send-btn" title="Send">➤</button>
+        </div>
+
+        <div class="input-hint">
+          Press Enter to send · Shift + Enter for a new line
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
 </html>
