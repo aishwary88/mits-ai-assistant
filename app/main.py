@@ -329,21 +329,55 @@ def retrieve_faculty(question: str):
         if word not in stopwords and len(word) > 1
     ]
 
-    # Filter faculty using their areas of interest
+        # Search across relevant faculty fields instead of only areas of interest
+
     if not search_terms:
         return faculty
+
+    # Normalize common academic terminology
+    term_aliases = {
+        "hod": "head",
+        "specializations": "specialization",
+        "interests": "interest"
+    }
+
+    search_terms = [
+        term_aliases.get(term, term)
+        for term in search_terms
+    ]
 
     matching_faculty = []
 
     for doc in faculty:
-        interests = doc.metadata.get(
-            "area_of_interest", ""
-        ).lower()
+        metadata = doc.metadata
 
-        if all(term in interests for term in search_terms):
-            matching_faculty.append(doc)
+        # Combine relevant faculty information
+        searchable_fields = [
+            str(metadata.get("faculty_name", "")),
+            str(metadata.get("designation", "")),
+            str(metadata.get("qualification", "")),
+            str(metadata.get("area_of_interest", "")),
+            str(metadata.get("email", "")),
+        ]
 
-    return matching_faculty
+        searchable_text = " ".join(searchable_fields).lower()
+
+        # Count how many query terms match this faculty record
+        matched_terms = sum(
+            1 for term in search_terms
+            if term in searchable_text
+        )
+
+        if matched_terms > 0:
+            matching_faculty.append((matched_terms, doc))
+
+    # Rank records by number of matching terms
+    matching_faculty.sort(
+        key=lambda item: item[0],
+        reverse=True
+    )
+
+    return [doc for score, doc in matching_faculty]
 
 
 
