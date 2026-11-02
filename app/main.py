@@ -1,245 +1,601 @@
-"""
-MITS AI Assistant — FastAPI backend
-------------------------------------
-Serves the vanilla HTML/CSS/JS frontend from /static
-and exposes a RAG chat endpoint at /api/chat (POST).
-
-Key design decisions:
-- vectorstore and LLM are initialized ONCE at startup and reused for every request.
-- No mutable per-request global state that could be corrupted between calls.
-- CORS is set to allow all origins so the same-origin frontend (served by FastAPI)
-  and any local dev tool can both reach the API without issues.
-"""
-
 from pathlib import Path
+import os
 
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
-from fastapi.staticfiles import StaticFiles
+from dotenv import load_dotenv
+from fastapi import FastAPI
 from pydantic import BaseModel
 from sentence_transformers import CrossEncoder
 
-from langchain_community.vectorstores import Chroma
 from langchain_groq import ChatGroq
+from langchain_community.vectorstores import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
 
-from dotenv import load_dotenv
-import os
-import logging
-import warnings
 
-# Suppress deprecation warnings from langchain-community that don't affect functionality
-warnings.filterwarnings("ignore", category=DeprecationWarning, module="langchain")
+# =====================================================
+# 1. PROJECT PATHS AND ENVIRONMENT
+# =====================================================
 
-# ---------------------------------------------------------------------------
-# Paths
-# ---------------------------------------------------------------------------
 BASE_DIR = Path(__file__).resolve().parent.parent
 DB_DIR = BASE_DIR / "chroma_db"
-STATIC_DIR = BASE_DIR / "static"
 
-# ---------------------------------------------------------------------------
-# Logging
-# ---------------------------------------------------------------------------
-logging.basicConfig(level=logging.INFO, format="%(asctime)s  %(levelname)s  %(message)s")
-log = logging.getLogger("mits")
+load_dotenv(BASE_DIR / ".env")
 
-# ---------------------------------------------------------------------------
-# Load environment variables (.env file in project root)
-# ---------------------------------------------------------------------------
-load_dotenv(BASE_DIR / ".env", override=True)
+app = FastAPI(title="MITS Gwalior RAG Chatbot")
 
-# ---------------------------------------------------------------------------
-# FastAPI app
-# ---------------------------------------------------------------------------
-app = FastAPI(title="MITS AI Assistant")
 
-# Allow all origins — the frontend is served by this same FastAPI server, so
-# same-origin fetch always works. The wildcard also lets Postman / dev tools
-# hit the API without friction.
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False,
-    allow_methods=["*"],
-    allow_headers=["*"],
+# =====================================================
+# 2. LOAD MODELS AND VECTOR DATABASE
+# =====================================================
+
+print("Loading embedding model...")
+
+embeddings = HuggingFaceEmbeddings(
+    model_name="all-MiniLM-L6-v2"
 )
 
-# ---------------------------------------------------------------------------
-# One-time startup: load embeddings, vectorstore, and LLM
-# These objects are module-level singletons — they are created once when the
-# worker process starts and then reused for every incoming request.
-# ---------------------------------------------------------------------------
-log.info("Loading HuggingFace embedding model (all-MiniLM-L6-v2)…")
-embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
-log.info("Embeddings ready.")
+print("Loading Chroma database...")
 
-log.info("Opening Chroma vectorstore at %s…", DB_DIR)
 vectorstore = Chroma(
     persist_directory=str(DB_DIR),
-    embedding_function=embeddings,
+    embedding_function=embeddings
 )
-log.info("Chroma vectorstore ready.")
 
-# Build the LLM client once.
-groq_key = os.environ.get("GROQ_API_KEY", "").strip()
-if groq_key:
-    log.info("GROQ_API_KEY found — using Groq LLM (openai/gpt-oss-20b).")
-    llm = ChatGroq(
-        api_key=groq_key,
-        model_name="openai/gpt-oss-20b",
-    )
-else:
-    log.warning(
-        "GROQ_API_KEY not set — falling back to local flan-t5-small. "
-        "Create a .env file in the project root with GROQ_API_KEY=<your key> "
-        "for better answers."
-    )
-    # Lazy-import transformers only when needed so the server still starts
-    # without a GPU / large download when the key is missing.
-    from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
-
-    _model_name = "google/flan-t5-small"
-    _tokenizer = AutoTokenizer.from_pretrained(_model_name)
-    _model = AutoModelForSeq2SeqLM.from_pretrained(_model_name)
-    llm = None  # signals to _build_answer to use the local path
-
-log.info("Backend initialisation complete.")
+print("Chroma database loaded successfully.")
 
 
-# ---------------------------------------------------------------------------
-# Request / response models
-# ---------------------------------------------------------------------------
+print("Loading Groq...")
+
+api_key = os.environ.get("GROQ_API_KEY")
+
+if not api_key:
+    raise RuntimeError("GROQ_API_KEY not found in project .env file.")
+
+llm = ChatGroq(
+    api_key=api_key,
+    model_name="openai/gpt-oss-20b"
+)
+
+print("Groq loaded successfully.")
+
+
+print("Loading CrossEncoder reranker...")
+
+reranker = CrossEncoder(
+    "cross-encoder/ms-marco-MiniLM-L-6-v2"
+)
+
+print("Reranker loaded successfully.")
+
+
+# =====================================================
+# 3. REQUEST MODEL
+# =====================================================
+
 class Question(BaseModel):
     question: str
 
 
-# ---------------------------------------------------------------------------
-# Core RAG function — stateless, safe to call concurrently
-# ---------------------------------------------------------------------------
-def _build_answer(question: str) -> dict:
-    """
-    1. Retrieve the top-3 most relevant chunks from Chroma.
-    2. Build a prompt and call the LLM (Groq or local fallback).
-    3. Return a structured dict with answer + sources.
+# =====================================================
+# 4. FACULTY QUESTION DETECTION
+# =====================================================
 
-    This function does NOT modify any module-level variable, so it is safe to
-    call from multiple requests without any locking.
-    """
+FACULTY_KEYWORDS = [
+    "faculty",
+    "faculty members",
+    "professor",
+    "teacher",
+    "teaches",
+    "teaching",
+    "hod",
+    "dean",
+    "specialization",
+    "specialisation",
+    "qualification",
+    "who is",
+    "who are",
+    "tell me about",
+    "machine learning",
+    "deep learning",
+    "artificial intelligence",
+    "data mining",
+    "sentiment analysis",
+    "image processing",
+    "natural language processing",
+    "nlp"
+]
 
-    # --- Retrieval ---
-    try:
-        results = vectorstore.similarity_search(question, k=3)
-    except Exception as exc:
-        log.exception("Chroma similarity_search failed: %s", exc)
-        raise HTTPException(status_code=500, detail="Retrieval failed. Please try again.")
 
-    if not results:
-        return {
-            "answer": "I couldn't find relevant information in the MITS knowledge base for that query.",
-            "sources": [],
-            "retrieval": {
-                "originalQuery": question,
-                "chunksRetrieved": 0,
-                "steps": ["✓ Query received", "✗ No matching chunks found"],
-                "documents": [],
-            },
-        }
+def is_faculty_query(question: str) -> bool:
 
-    context = "\n\n".join(doc.page_content for doc in results)
+    question_lower = question.lower()
 
-    # --- Prompt ---
-    prompt = (
-        "You are a helpful MITS (Madhav Institute of Technology & Science, Gwalior) "
-        "college assistant.\n\n"
-        "Answer the question using ONLY the information provided in the context below.\n"
-        "If the answer is not in the context, say: "
-        '"I don\'t have that information in the college documents."\n\n'
-        f"Context:\n{context}\n\n"
-        f"Question:\n{question}\n\n"
-        "Answer:"
+    return any(
+        keyword in question_lower
+        for keyword in FACULTY_KEYWORDS
     )
 
-    # --- Generation ---
-    try:
-        if llm is not None:
-            # Groq path
-            response = llm.invoke(prompt)
-            answer = response.content.strip()
-        else:
-            # Local flan-t5 fallback
-            inputs = _tokenizer(
-                prompt, return_tensors="pt", truncation=True, max_length=512
+
+def detect_department(question: str):
+
+    question_lower = question.lower()
+
+    if (
+        "csd" in question_lower
+        or "computer science and design" in question_lower
+    ):
+        return "CSD"
+
+    if (
+        "cse" in question_lower
+        or "computer science and engineering" in question_lower
+    ):
+        return "CSE"
+
+    return None
+
+
+# =====================================================
+# 5. MULTI-QUERY GENERATION
+# =====================================================
+
+def generate_queries(question: str) -> list[str]:
+
+    prompt = f"""
+You generate search queries for a college information chatbot.
+
+Generate exactly 3 alternative search queries for the user's question.
+
+Rules:
+- Preserve all years, dates, course names, and specific details.
+- Never introduce a year or date that the user did not mention.
+- Keep each query focused on the same intent.
+- Use different wording to improve document retrieval.
+- Return only the 3 queries, one per line.
+- Do not number them or add explanations.
+
+User question: {question}
+"""
+
+    response = llm.invoke(prompt)
+
+    queries = [
+        line.strip().lstrip("0123456789.-) ")
+        for line in response.content.splitlines()
+        if line.strip()
+    ]
+
+    all_queries = [question] + queries[:3]
+
+    return list(dict.fromkeys(all_queries))
+
+
+# =====================================================
+# 6. RECIPROCAL RANK FUSION
+# =====================================================
+
+def freeze_metadata(value):
+
+    if isinstance(value, dict):
+        return tuple(
+            sorted(
+                (key, freeze_metadata(val))
+                for key, val in value.items()
             )
-            outputs = _model.generate(
-                **inputs, max_new_tokens=180, num_beams=4, do_sample=False
-            )
-            answer = _tokenizer.decode(outputs[0], skip_special_tokens=True).strip()
-    except Exception as exc:
-        log.exception("LLM generation failed: %s", exc)
-        raise HTTPException(
-            status_code=502,
-            detail="The language model could not generate a response. Please try again.",
         )
 
-    # --- Build response ---
+    if isinstance(value, (list, tuple)):
+        return tuple(freeze_metadata(item) for item in value)
+
+    return value
+
+
+def reciprocal_rank_fusion(ranked_lists, k: int = 60):
+
+    scores = {}
+    documents = {}
+
+    for ranked_docs in ranked_lists:
+
+        for rank, doc in enumerate(ranked_docs, start=1):
+
+            doc_id = (
+                doc.page_content,
+                freeze_metadata(doc.metadata)
+            )
+
+            documents[doc_id] = doc
+
+            scores[doc_id] = scores.get(doc_id, 0) + (
+                1 / (k + rank)
+            )
+
+    ranked_ids = sorted(
+        scores,
+        key=scores.get,
+        reverse=True
+    )
+
+    return [
+        documents[doc_id]
+        for doc_id in ranked_ids
+    ]
+
+
+# =====================================================
+# 7. CROSSENCODER RERANKING
+# =====================================================
+
+def rerank_documents(
+    question: str,
+    documents,
+    top_n: int = 5
+):
+
+    if not documents:
+        return []
+
+    pairs = [
+        (question, doc.page_content)
+        for doc in documents
+    ]
+
+    scores = reranker.predict(pairs)
+
+    ranked_docs = sorted(
+        zip(documents, scores),
+        key=lambda item: float(item[1]),
+        reverse=True
+    )
+
+    print("\nReranker scores:")
+
+    for doc, score in ranked_docs:
+        print(
+            f"{float(score):.4f} | "
+            f"{doc.page_content[:100]!r}"
+        )
+
+    return [
+        doc
+        for doc, score in ranked_docs[:top_n]
+    ]
+
+
+# =====================================================
+# 8. FACULTY RETRIEVAL
+# =====================================================
+
+
+import re
+
+def retrieve_faculty(question: str):
+
+    department = detect_department(question)
+
+    # Retrieve faculty records from the selected department
+    if department:
+        metadata_filter = {
+            "$and": [
+                {"type": "faculty"},
+                {"department": department}
+            ]
+        }
+    else:
+        metadata_filter = {"type": "faculty"}
+
+    results = vectorstore.similarity_search(
+        question,
+        k=30,
+        filter=metadata_filter
+    )
+
+    # Remove duplicate faculty records
+    unique_faculty = {}
+
+    for doc in results:
+        name = doc.metadata.get("faculty_name", "")
+
+        if name and name not in unique_faculty:
+            unique_faculty[name] = doc
+
+    faculty = list(unique_faculty.values())
+
+    # Return all faculty for general listing questions
+    general_terms = [
+        "show all", "all faculty", "list all",
+        "faculty members", "show faculty",
+        "list faculty"
+    ]
+
+    if any(term in question.lower() for term in general_terms):
+        return faculty
+
+    # Extract meaningful search terms
+    stopwords = {
+        "which", "who", "are", "the", "is", "in", "at",
+        "of", "for", "and", "or", "do", "does", "has",
+        "have", "with", "what", "work", "works", "working",
+        "faculty", "members", "member", "teacher", "teachers",
+        "professor", "professors", "from", "department",
+        "specialization", "specializations", "interest",
+        "interests", "area", "areas", "show", "me", "find",
+        "tell", "about", "csd", "cse"
+    }
+
+    words = re.findall(r"[a-z]+", question.lower())
+
+    search_terms = [
+        word for word in words
+        if word not in stopwords and len(word) > 1
+    ]
+
+    # Filter faculty using their areas of interest
+    if not search_terms:
+        return faculty
+
+    matching_faculty = []
+
+    for doc in faculty:
+        interests = doc.metadata.get(
+            "area_of_interest", ""
+        ).lower()
+
+        if all(term in interests for term in search_terms):
+            matching_faculty.append(doc)
+
+    return matching_faculty
+
+
+
+def answer_faculty_question(question: str):
+
+    faculty_docs = retrieve_faculty(question)
+
+    print("\nRetrieved faculty records:", len(faculty_docs))
+
+    if not faculty_docs:
+        return {
+            "type": "faculty",
+            "answer": "I couldn't find matching faculty information in the college database.",
+            "faculty": [],
+            "sources": []
+        }
+
+    faculty_data = []
+
+    for doc in faculty_docs:
+        metadata = doc.metadata
+
+        faculty_data.append({
+            "name": metadata.get("faculty_name"),
+            "department": metadata.get("department"),
+            "designation": metadata.get("designation"),
+            "qualification": metadata.get("qualification"),
+            "area_of_interest": metadata.get("area_of_interest"),
+            "email": metadata.get("email"),
+            "phone": metadata.get("phone"),
+            "photo_url": metadata.get("photo_url"),
+            "profile_url": metadata.get("profile_url")
+        })
+
+    # Build answer directly from retrieved structured data
+    answer_lines = [
+        "## MITS Faculty Information",
+        ""
+    ]
+
+    for faculty in faculty_data:
+
+        answer_lines.append(f"### {faculty['name']}")
+        answer_lines.append(f"- Department: {faculty['department']}")
+        answer_lines.append(f"- Designation: {faculty['designation']}")
+        answer_lines.append(f"- Qualification: {faculty['qualification']}")
+        answer_lines.append(f"- Areas of Interest: {faculty['area_of_interest']}")
+
+        if faculty["photo_url"]:
+            answer_lines.append(
+                f"![{faculty['name']}]({faculty['photo_url']})"
+            )
+
+        if faculty["profile_url"]:
+            answer_lines.append(
+               f"[View Official Profile]({faculty['profile_url']})"
+            )
+
+        answer_lines.append("")
+
     sources = [
         {
-            "title": doc.metadata.get("source", "MITS document"),
-            "type": "PDF",
-            "page": int(doc.metadata.get("page", 1)),
-            "excerpt": doc.page_content[:300],
+            "type": "faculty",
+            "name": doc.metadata.get("faculty_name"),
+            "department": doc.metadata.get("department")
         }
-        for doc in results
+        for doc in faculty_docs
     ]
 
     return {
-        "answer": answer,
-        "sources": sources,
-        "retrieval": {
-            "originalQuery": question,
-            "chunksRetrieved": len(results),
-            "steps": [
-                "✓ Query received",
-                "✓ Searched MITS knowledge base",
-                "✓ Retrieved relevant chunks",
-                "✓ Generated answer",
-            ],
-            "documents": [
-                {
-                    "title": doc.metadata.get("source", "MITS document"),
-                    "page": int(doc.metadata.get("page", 1)),
-                }
-                for doc in results
-            ],
-        },
+        "type": "faculty",
+        "answer": "\n".join(answer_lines),
+        "faculty": faculty_data,
+        "sources": sources
     }
 
-# ---------------------------------------------------------------------------
-# API endpoints
-# ---------------------------------------------------------------------------
-@app.post("/api/chat")
-@app.post("/chat")
+
+
+# =====================================================
+# 9. NORMAL DOCUMENT RETRIEVAL
+# =====================================================
+
+def deduplicate_documents(documents):
+
+    unique_docs = []
+    seen = set()
+
+    for doc in documents:
+
+        # Normalize content to detect duplicate chunks
+        content_key = " ".join(doc.page_content.lower().split())
+
+        if content_key not in seen:
+            seen.add(content_key)
+            unique_docs.append(doc)
+
+    return unique_docs
+
+def answer_general_question(question: str):
+
+    # Generate alternative queries
+    queries = generate_queries(question)
+
+    print("\nGenerated queries:")
+
+    for query in queries:
+        print("-", query)
+
+    # Retrieve chunks for every query
+    ranked_lists = [
+        vectorstore.similarity_search(
+            query,
+            k=5
+        )
+        for query in queries
+    ]
+
+    # Combine results using RRF
+    results = reciprocal_rank_fusion(ranked_lists)
+
+    # Keep top 15 candidates
+    candidates = deduplicate_documents(results)[:15]
+
+    # Rerank candidates using CrossEncoder
+    final_results = rerank_documents(
+        question,
+        candidates,
+        top_n=5
+    )
+
+    print("\nCandidates before reranking:", len(candidates))
+    print("Final chunks after reranking:", len(final_results))
+
+    if not final_results:
+
+        return {
+            "type": "general",
+            "answer": "I don't have that information in the college documents.",
+            "faculty": [],
+            "sources": []
+        }
+
+    context = "\n\n".join(
+        doc.page_content
+        for doc in final_results
+    )
+
+    prompt = f"""
+You are a helpful MITS Gwalior college assistant.
+
+Answer the question using ONLY the information provided
+in the context below.
+
+If the answer is not present in the context, say:
+"I don't have that information in the college documents."
+
+Do not invent facts, dates, fees, or other details.
+
+Context:
+{context}
+
+Question:
+{question}
+
+Answer:
+"""
+
+    response = llm.invoke(prompt)
+
+    # Return source information with the answer
+    
+    # Return unique source information
+    sources = []
+    seen_sources = set()
+
+    for doc in final_results:
+
+        metadata = doc.metadata
+
+        source_key = (
+            metadata.get("type", "pdf"),
+            metadata.get("source"),
+            metadata.get("page")
+        )
+
+        if source_key not in seen_sources:
+            seen_sources.add(source_key)
+
+            sources.append({
+                "type": metadata.get("type", "pdf"),
+                "source": metadata.get("source"),
+                "page": metadata.get("page")
+            })
+
+    return {
+        "type": "general",
+        "answer": response.content,
+        "faculty": [],
+        "sources": sources
+    }
+
+
+
+# =====================================================
+# 10. MAIN CHAT ENDPOINT
+# =====================================================
+
 @app.post("/ask")
+@app.post("/chat")
+@app.post("/api/chat")
 def ask_question(q: Question):
-    question = (q.question or "").strip()
+
+    question = q.question.strip()
+
     if not question:
-        raise HTTPException(status_code=400, detail="Question cannot be empty.")
-    return _build_answer(question)
+        return {
+            "type": "error",
+            "answer": "Please enter a question.",
+            "faculty": [],
+            "sources": []
+        }
+
+    print("\n===================================")
+    print("Student question:", question)
+    print("===================================")
+
+    if is_faculty_query(question):
+
+        return answer_faculty_question(question)
+
+    return answer_general_question(question)
 
 
-# ---------------------------------------------------------------------------
-# Serve the static frontend
-# ---------------------------------------------------------------------------
-# Mount the static directory so /static/<file> works.
-app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
-
+# =====================================================
+# 11. HEALTH CHECK
+# =====================================================
 
 @app.get("/")
 def root():
-    """Serve index.html at the root URL."""
-    index_path = STATIC_DIR / "index.html"
-    if not index_path.exists():
-        raise HTTPException(status_code=404, detail="index.html not found in static/")
-    return FileResponse(str(index_path))
+
+    return {
+        "message": "MITS Gwalior RAG Chatbot Backend is running.",
+        "status": "active",
+        "docs": "/docs"
+    }
+
+
+@app.get("/health")
+def health_check():
+
+    return {
+        "status": "healthy",
+        "database": "connected",
+        "models": "loaded"
+    }
